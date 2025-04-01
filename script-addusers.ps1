@@ -57,3 +57,5 @@ foreach ($user in $usersList) { Import-User $user $defaultUserOU }
 foreach ($admin in $adminsList) { Import-User $admin $defaultAdminOU }
 
 Write-Host "🎉 Test terminé ! Vérifiez si les utilisateurs sont bien importés." -ForegroundColor Magenta
+Write-Host "Appuyez sur Entrée pour quitter..." -ForegroundColor Yellow
+Read-Host | Out-Null
