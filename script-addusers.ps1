@@ -64,10 +64,10 @@ Check-FileExists $csvAdmins
 $usersList = Import-Csv $csvUsers
 $adminsList = Import-Csv $csvAdmins
 
-Write-Host "📥 Début de l'importation des utilisateurs..." -ForegroundColor Blue
+Write-Host " Début de l'importation des utilisateurs..." -ForegroundColor Blue
 
 # Importe les utilisateurs et les administrateurs
 foreach ($user in $usersList) { Import-User $user $defaultUserOU }
 foreach ($admin in $adminsList) { Import-User $admin $defaultAdminOU }
 
-Write-Host "🎉 Importation terminée !" -ForegroundColor Magenta
+Write-Host " Importation terminée !" -ForegroundColor Magenta
