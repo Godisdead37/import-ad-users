@@ -20,7 +20,7 @@ function Check-FileExists {
 # Valide les champs obligatoires d'un utilisateur
 function Validate-User {
     param ($user)
-    if (-not $user.SamAccountName -or -not $user.Prenom -or -not $user.Nom) {
+    if (-not $user.SamAccountName -or -not $user.first_name -or -not $user.last_name) {
         Write-Host " ERREUR : Champs manquants pour l'utilisateur : $($user | Out-String)" -ForegroundColor Red
         return $false
     }
@@ -42,7 +42,7 @@ function Import-User {
         New-ADUser `
             -SamAccountName $user.SamAccountName `
             -UserPrincipalName "$($user.SamAccountName)@thor.lan" `
-            -Name "$($user.Prenom) $($user.Nom)" `
+            -Name "$($user.first_name) $($user.last_name) {" `
             -GivenName $user.Prenom `
             -Surname $user.Nom `
             -Path $ou `
