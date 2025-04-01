@@ -3,11 +3,12 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $csvUsers = "$scriptDir\users.csv"
 $csvAdmins = "$scriptDir\admin.csv"
 
-# OU par défaut (MODIFIE ICI avec tes propres OUs !)
 $defaultUserOU = "OU=Utilisateurs,DC=thor,DC=lan"
 $defaultAdminOU = "OU=Admin,DC=thor,DC=lan"
 
 # === FONCTIONS ===
+
+# Vérifie si un fichier existe
 function Check-FileExists {
     param ($filePath)
     if (!(Test-Path $filePath)) {
@@ -16,31 +17,27 @@ function Check-FileExists {
     }
 }
 
+# Valide les champs obligatoires d'un utilisateur
 function Validate-User {
     param ($user)
     if (-not $user.SamAccountName -or -not $user.Prenom -or -not $user.Nom) {
-        Write-Host "❌ ERREUR : L'utilisateur a des champs manquants ou vides (SamAccountName, Prenom, Nom)." -ForegroundColor Red
+        Write-Host "❌ ERREUR : Champs manquants pour l'utilisateur : $($user | Out-String)" -ForegroundColor Red
         return $false
     }
     return $true
 }
 
+# Importe un utilisateur dans Active Directory
 function Import-User {
     param ($user, $ou)
-    
-    if (-not (Validate-User $user)) {
-        return
-    }
 
-    Write-Host "📥 Importation de : $($user.SamAccountName) dans $ou" -ForegroundColor Cyan
+    if (-not (Validate-User $user)) { return }
 
-    # Vérifie si l'utilisateur existe déjà
     if (Get-ADUser -Filter { SamAccountName -eq $user.SamAccountName } -ErrorAction SilentlyContinue) {
         Write-Host "⚠️ Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
         return
     }
 
-    # Création de l'utilisateur AD avec gestion des erreurs
     try {
         New-ADUser `
             -SamAccountName $user.SamAccountName `
@@ -51,25 +48,26 @@ function Import-User {
             -Path $ou `
             -AccountPassword (ConvertTo-SecureString "P@ssword123" -AsPlainText -Force) `
             -Enabled $true
-        Write-Host "✅ Utilisateur $($user.SamAccountName) importé !" -ForegroundColor Green
+        Write-Host "✅ Utilisateur $($user.SamAccountName) importé avec succès !" -ForegroundColor Green
     } catch {
-        Write-Host "❌ Échec pour $($user.SamAccountName) : $_" -ForegroundColor Red
+        Write-Host "❌ Échec de l'importation pour $($user.SamAccountName) : $_" -ForegroundColor Red
     }
 }
 
-# === VÉRIFICATION DES FICHIERS ===
+# === EXÉCUTION ===
+
+# Vérifie les fichiers CSV
 Check-FileExists $csvUsers
 Check-FileExists $csvAdmins
 
-# === IMPORTATION DES UTILISATEURS (TEST 3 UTILISATEURS) ===
-$usersList = Import-Csv $csvUsers | Select-Object -First 3
-$adminsList = Import-Csv $csvAdmins | Select-Object -First 3
+# Charge les utilisateurs depuis les fichiers CSV
+$usersList = Import-Csv $csvUsers
+$adminsList = Import-Csv $csvAdmins
 
-Write-Host "🔍 Test d'importation de 3 utilisateurs..." -ForegroundColor Blue
+Write-Host "📥 Début de l'importation des utilisateurs..." -ForegroundColor Blue
 
+# Importe les utilisateurs et les administrateurs
 foreach ($user in $usersList) { Import-User $user $defaultUserOU }
 foreach ($admin in $adminsList) { Import-User $admin $defaultAdminOU }
 
-Write-Host "🎉 Test terminé ! Vérifiez si les utilisateurs sont bien importés." -ForegroundColor Magenta
-Write-Host "Appuyez sur Entrée pour quitter..." -ForegroundColor Yellow
-Read-Host | Out-Null
+Write-Host "🎉 Importation terminée !" -ForegroundColor Magenta
