@@ -16,8 +16,21 @@ function Check-FileExists {
     }
 }
 
+function Validate-User {
+    param ($user)
+    if (-not $user.SamAccountName -or -not $user.Prenom -or -not $user.Nom) {
+        Write-Host "❌ ERREUR : L'utilisateur a des champs manquants ou vides (SamAccountName, Prenom, Nom)." -ForegroundColor Red
+        return $false
+    }
+    return $true
+}
+
 function Import-User {
     param ($user, $ou)
+    if (-not (Validate-User $user)) {
+        return
+    }
+
     Write-Host "📥 Importation de : $($user.SamAccountName) dans $ou" -ForegroundColor Cyan
 
     # Vérifie si l'utilisateur existe déjà
