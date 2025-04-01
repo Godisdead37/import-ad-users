@@ -1,45 +1,56 @@
 # === CONFIGURATION ===
-$usersCSV = "C:\Users\louis\Desktop\scripting\import-ad-users\users.csv"
-$adminsCSV = "C:\Users\louis\Desktop\scripting\import-ad-users\admin.csv"
-$domain = "thor.lan"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$csvUsers = "$scriptDir\users.csv"
+$csvAdmins = "$scriptDir\admin.csv"
 
-# OU dans Active Directory
-$OU_Users = "OU=Utilisateurs,DC=thor,DC=lan"
-$OU_Admins = "OU=Admin,DC=thor,DC=lan"
+# OU par défaut (MODIFIE ICI avec tes propres OUs !)
+$defaultUserOU = "OU=Utilisateurs,DC=thor,DC=lan"
+$defaultAdminOU = "OU=Admin,DC=thor,DC=lan"
 
-# === VÉRIFICATION DES FICHIERS CSV ===
-if (!(Test-Path $usersCSV) -or !(Test-Path $adminsCSV)) {
-    Write-Host "❌ Fichiers CSV introuvables. Vérifiez les chemins." -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "✅ Fichiers CSV trouvés. Début de l'import..." -ForegroundColor Green
-
-# === FONCTION POUR IMPORTER LES UTILISATEURS ===
-function Import-Users {
-    param ($CSVFile, $OU, $Limit)
-
-    $users = Import-Csv $CSVFile | Select-Object -First $Limit
-    foreach ($user in $users) {
-        $userName = $user.Username
-        $fullName = "$($user.FirstName) $($user.LastName)"
-        $password = ConvertTo-SecureString $user.Password -AsPlainText -Force
-        $UPN = "$userName@$domain"
-
-        # Vérifie si l'utilisateur existe déjà
-        if (Get-ADUser -Filter {SamAccountName -eq $userName}) {
-            Write-Host "⚠️ Utilisateur $userName existe déjà. Skipping." -ForegroundColor Yellow
-        } else {
-            New-ADUser -SamAccountName $userName -UserPrincipalName $UPN `
-                -Name $fullName -GivenName $user.FirstName -Surname $user.LastName `
-                -AccountPassword $password -Path $OU -Enabled $true
-            Write-Host "✅ Utilisateur $userName importé avec succès." -ForegroundColor Green
-        }
+# === FONCTIONS ===
+function Check-FileExists {
+    param ($filePath)
+    if (!(Test-Path $filePath)) {
+        Write-Host "❌ ERREUR : Le fichier $filePath est introuvable !" -ForegroundColor Red
+        exit 1
     }
 }
 
-# === TEST : Importer 3 utilisateurs de chaque CSV ===
-Import-Users -CSVFile $usersCSV -OU $OU_Users -Limit 3
-Import-Users -CSVFile $adminsCSV -OU $OU_Admins -Limit 3
+function Import-User {
+    param ($user, $ou)
+    Write-Host "📥 Importation de : $($user.SamAccountName) dans $ou" -ForegroundColor Cyan
 
-Write-Host "🎉 Import de test terminé. Vérifiez dans Active Directory." -ForegroundColor Cyan
+    # Vérifie si l'utilisateur existe déjà
+    if (Get-ADUser -Filter {SamAccountName -eq $user.SamAccountName}) {
+        Write-Host "⚠️ Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
+        return
+    }
+
+    # Création de l'utilisateur AD
+    New-ADUser `
+        -SamAccountName $user.SamAccountName `
+        -UserPrincipalName "$($user.SamAccountName)@thor.lan" `
+        -Name "$($user.Prenom) $($user.Nom)" `
+        -GivenName $user.Prenom `
+        -Surname $user.Nom `
+        -Path $ou `
+        -AccountPassword (ConvertTo-SecureString "P@ssword123" -AsPlainText -Force) `
+        -Enabled $true
+
+    Write-Host "✅ Utilisateur $($user.SamAccountName) importé !" -ForegroundColor Green
+}
+
+# === VÉRIFICATION DES FICHIERS ===
+Check-FileExists $csvUsers
+Check-FileExists $csvAdmins
+
+# === IMPORTATION DES UTILISATEURS (TEST 3 UTILISATEURS) ===
+$usersList = Import-Csv $csvUsers | Select-Object -First 3
+$adminsList = Import-Csv $csvAdmins | Select-Object -First 3
+
+Write-Host "🔍 Test d'importation de 3 utilisateurs..." -ForegroundColor Blue
+
+foreach ($user in $usersList) { Import-User $user $defaultUserOU }
+foreach ($admin in $adminsList) { Import-User $admin $defaultAdminOU }
+
+Write-Host "🎉 Test terminé ! Vérifiez si les utilisateurs sont bien importés." -ForegroundColor Magenta
