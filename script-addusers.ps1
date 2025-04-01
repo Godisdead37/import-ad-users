@@ -27,6 +27,7 @@ function Validate-User {
 
 function Import-User {
     param ($user, $ou)
+    
     if (-not (Validate-User $user)) {
         return
     }
