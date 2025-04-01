@@ -21,7 +21,7 @@ function Import-User {
     Write-Host "📥 Importation de : $($user.SamAccountName) dans $ou" -ForegroundColor Cyan
 
     # Vérifie si l'utilisateur existe déjà
-    if (Get-ADUser -Filter {SamAccountName -eq $user.SamAccountName}) {
+    if (Get-ADUser -Filter {SamAccountName -eq $user.SamAccountName}-ErrorAction SilentlyContinue) {
         Write-Host "⚠️ Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
         return
     }
