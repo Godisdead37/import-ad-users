@@ -21,23 +21,26 @@ function Import-User {
     Write-Host "📥 Importation de : $($user.SamAccountName) dans $ou" -ForegroundColor Cyan
 
     # Vérifie si l'utilisateur existe déjà
-    if (Get-ADUser -Filter {SamAccountName -eq $user.SamAccountName}-ErrorAction SilentlyContinue) {
+    if (Get-ADUser -Filter { SamAccountName -eq $user.SamAccountName } -ErrorAction SilentlyContinue) {
         Write-Host "⚠️ Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
         return
     }
 
-    # Création de l'utilisateur AD
-    New-ADUser `
-        -SamAccountName $user.SamAccountName `
-        -UserPrincipalName "$($user.SamAccountName)@thor.lan" `
-        -Name "$($user.Prenom) $($user.Nom)" `
-        -GivenName $user.Prenom `
-        -Surname $user.Nom `
-        -Path $ou `
-        -AccountPassword (ConvertTo-SecureString "P@ssword123" -AsPlainText -Force) `
-        -Enabled $true
-
-    Write-Host "✅ Utilisateur $($user.SamAccountName) importé !" -ForegroundColor Green
+    # Création de l'utilisateur AD avec gestion des erreurs
+    try {
+        New-ADUser `
+            -SamAccountName $user.SamAccountName `
+            -UserPrincipalName "$($user.SamAccountName)@thor.lan" `
+            -Name "$($user.Prenom) $($user.Nom)" `
+            -GivenName $user.Prenom `
+            -Surname $user.Nom `
+            -Path $ou `
+            -AccountPassword (ConvertTo-SecureString "P@ssword123" -AsPlainText -Force) `
+            -Enabled $true
+        Write-Host "✅ Utilisateur $($user.SamAccountName) importé !" -ForegroundColor Green
+    } catch {
+        Write-Host "❌ Échec pour $($user.SamAccountName) : $_" -ForegroundColor Red
+    }
 }
 
 # === VÉRIFICATION DES FICHIERS ===
