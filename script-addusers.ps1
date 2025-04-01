@@ -12,7 +12,7 @@ $defaultAdminOU = "OU=Admin,DC=thor,DC=lan"
 function Check-FileExists {
     param ($filePath)
     if (!(Test-Path $filePath)) {
-        Write-Host "❌ ERREUR : Le fichier $filePath est introuvable !" -ForegroundColor Red
+        Write-Host " ERREUR : Le fichier $filePath est introuvable !" -ForegroundColor Red
         exit 1
     }
 }
@@ -21,7 +21,7 @@ function Check-FileExists {
 function Validate-User {
     param ($user)
     if (-not $user.SamAccountName -or -not $user.Prenom -or -not $user.Nom) {
-        Write-Host "❌ ERREUR : Champs manquants pour l'utilisateur : $($user | Out-String)" -ForegroundColor Red
+        Write-Host " ERREUR : Champs manquants pour l'utilisateur : $($user | Out-String)" -ForegroundColor Red
         return $false
     }
     return $true
@@ -34,7 +34,7 @@ function Import-User {
     if (-not (Validate-User $user)) { return }
 
     if (Get-ADUser -Filter { SamAccountName -eq $user.SamAccountName } -ErrorAction SilentlyContinue) {
-        Write-Host "⚠️ Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
+        Write-Host " Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
         return
     }
 
@@ -48,9 +48,9 @@ function Import-User {
             -Path $ou `
             -AccountPassword (ConvertTo-SecureString "P@ssword123" -AsPlainText -Force) `
             -Enabled $true
-        Write-Host "✅ Utilisateur $($user.SamAccountName) importé avec succès !" -ForegroundColor Green
+        Write-Host " Utilisateur $($user.SamAccountName) importé avec succès !" -ForegroundColor Green
     } catch {
-        Write-Host "❌ Échec de l'importation pour $($user.SamAccountName) : $_" -ForegroundColor Red
+        Write-Host " Échec de l'importation pour $($user.SamAccountName) : $_" -ForegroundColor Red
     }
 }
 
