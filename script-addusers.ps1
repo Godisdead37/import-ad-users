@@ -20,7 +20,7 @@ function Check-FileExists {
 # Valide les champs obligatoires d'un utilisateur
 function Validate-User {
     param ($user)
-    if (-not $user.SamAccountName -or -not $user.first_name -or -not $user.last_name) {
+    if (-not $user.first_name -or -not $user.last_name -or -not $user.password) {
         Write-Host " ERREUR : Champs manquants pour l'utilisateur : $($user | Out-String)" -ForegroundColor Red
         return $false
     }
@@ -33,24 +33,26 @@ function Import-User {
 
     if (-not (Validate-User $user)) { return }
 
-    if (Get-ADUser -Filter { SamAccountName -eq $user.SamAccountName } -ErrorAction SilentlyContinue) {
-        Write-Host " Utilisateur $($user.SamAccountName) existe déjà, saut..." -ForegroundColor Yellow
+    $samAccountName = "$($user.first_name.Substring(0,1).ToLower())$($user.last_name.ToLower())"
+
+    if (Get-ADUser -Filter { SamAccountName -eq $samAccountName } -ErrorAction SilentlyContinue) {
+        Write-Host " Utilisateur $samAccountName existe déjà, saut..." -ForegroundColor Yellow
         return
     }
 
     try {
         New-ADUser `
-            -SamAccountName $user.SamAccountName `
-            -UserPrincipalName "$($user.SamAccountName)@thor.lan" `
-            -Name "$($user.first_name) $($user.last_name) {" `
-            -GivenName $user.Prenom `
-            -Surname $user.Nom `
+            -SamAccountName $samAccountName `
+            -UserPrincipalName "$samAccountName@thor.lan" `
+            -Name "$($user.first_name) $($user.last_name)" `
+            -GivenName $user.first_name `
+            -Surname $user.last_name `
             -Path $ou `
-            -AccountPassword (ConvertTo-SecureString "P@ssword123" -AsPlainText -Force) `
+            -AccountPassword (ConvertTo-SecureString $user.password -AsPlainText -Force) `
             -Enabled $true
-        Write-Host " Utilisateur $($user.SamAccountName) importé avec succès !" -ForegroundColor Green
+        Write-Host " Utilisateur $samAccountName importé avec succès !" -ForegroundColor Green
     } catch {
-        Write-Host " Échec de l'importation pour $($user.SamAccountName) : $_" -ForegroundColor Red
+        Write-Host " Échec de l'importation pour $samAccountName : $_" -ForegroundColor Red
     }
 }
 
